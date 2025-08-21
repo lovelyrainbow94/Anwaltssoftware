@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Aufgabenplaner Pro</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <h1 class="title">Aufgabenplaner Pro</h1>
+            <ul>
+                <li class="active" data-view="dashboard">Dashboard</li>
+                <li data-view="tasks">Aufgaben & Filter</li>
+                <li data-view="cases">Akten</li>
+                <li data-view="clients">Klienten</li>
+                <li data-view="daily-plan">Tagesplan</li>
+                <li data-view="deadlines">Fristen</li>
+                <li data-view="reminders">Wiedervorlagen</li>
+                <li data-view="backup">Datensicherung</li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <div id="dashboard-view" class="view active">
+                <h2>Dashboard</h2>
+                <div class="dashboard-header">
+                    <div id="date-time-container">
+                        <p id="date"></p>
+                        <p id="time"></p>
+                    </div>
+                </div>
+                <div class="dashboard-kpis">
+                    <div class="kpi-card">
+                        <h3>Heute fällige Aufgaben</h3>
+                        <p class="kpi-value">3</p>
+                        <span>(noch nicht erledigt)</span>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Nächste Fristen</h3>
+                        <ul id="next-deadlines">
+                            <li>Akte Meier - Klageeinreichung - in 2 Tagen</li>
+                            <li>Akte Schmidt - Berufung - in 4 Tagen</li>
+                            <li>Akte Huber - Stellungnahme - in 5 Tagen</li>
+                            <li>Akte Bauer - Fristsetzung - in 6 Tagen</li>
+                            <li>Akte Keller - Antwortfrist - in 7 Tagen</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="dashboard-actions">
+                    <button class="action-btn" data-view="reminders">Wiedervorlagen</button>
+                    <button class="action-btn" data-view="daily-plan">Tagesplan</button>
+                    <button class="action-btn" data-view="deadlines">Fristenübersicht</button>
+                </div>
+            </div>
+            <div id="tasks-view" class="view">
+                <h2>Aufgaben & Filter</h2>
+                <button id="add-task-btn" class="btn-primary">Neue Aufgabe anlegen</button>
+                <div id="task-list" class="card-container">
+                    <!-- Task cards will be dynamically inserted here -->
+                </div>
+
+                <!-- Add/Edit Task Modal -->
+                <div id="task-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn">&times;</span>
+                        <h3 id="task-modal-title">Neue Aufgabe anlegen</h3>
+                        <form id="task-form">
+                            <input type="hidden" id="task-id">
+                            <div class="form-group">
+                                <label for="task-title">Aufgabe</label>
+                                <input type="text" id="task-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="task-case-select">Zugehörige Akte</label>
+                                <select id="task-case-select">
+                                    <option value="">Keine Akte</option>
+                                    <!-- Options will be populated from cases list -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="task-due-date">Fällig am</label>
+                                <input type="date" id="task-due-date">
+                            </div>
+                            <div class="form-group">
+                                <label for="task-status">Status</label>
+                                <select id="task-status">
+                                    <option value="Offen">Offen</option>
+                                    <option value="In Bearbeitung">In Bearbeitung</option>
+                                    <option value="Erledigt">Erledigt</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Speichern</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="cases-view" class="view">
+                <h2>Akten</h2>
+                <button id="add-case-btn" class="btn-primary">Neue Akte anlegen</button>
+                <div id="case-list" class="card-container">
+                    <!-- Case cards will be dynamically inserted here -->
+                </div>
+
+                <!-- Add/Edit Case Modal -->
+                <div id="case-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn">&times;</span>
+                        <h3 id="case-modal-title">Neue Akte anlegen</h3>
+                        <form id="case-form">
+                            <input type="hidden" id="case-id">
+                            <div class="form-group">
+                                <label for="case-title">Titel / Aktenzeichen</label>
+                                <input type="text" id="case-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="case-client-select">Zugehöriger Klient</label>
+                                <select id="case-client-select" required>
+                                    <!-- Options will be populated from clients list -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="case-description">Beschreibung</label>
+                                <textarea id="case-description" rows="4"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Speichern</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="clients-view" class="view">
+                <h2>Klienten</h2>
+                <button id="add-client-btn" class="btn-primary">Neuen Klient anlegen</button>
+                <div id="client-list" class="card-container">
+                    <!-- Client cards will be dynamically inserted here -->
+                </div>
+
+                <!-- Add/Edit Client Modal -->
+                <div id="client-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn">&times;</span>
+                        <h3 id="client-modal-title">Neuen Klient anlegen</h3>
+                        <form id="client-form">
+                            <input type="hidden" id="client-id">
+                            <div class="form-group">
+                                <label for="client-name">Name</label>
+                                <input type="text" id="client-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="client-email">E-Mail</label>
+                                <input type="email" id="client-email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="client-phone">Telefon</label>
+                                <input type="tel" id="client-phone">
+                            </div>
+                            <div class="form-group">
+                                <label for="client-address">Adresse</label>
+                                <textarea id="client-address" rows="3"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Speichern</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="daily-plan-view" class="view">
+                <h2>Tagesplan</h2>
+                <div id="daily-plan-content">
+                    <h4>Heute fällige Aufgaben</h4>
+                    <ul id="daily-tasks-list"></ul>
+                    <hr>
+                    <h4>Heute fällige Fristen</h4>
+                    <ul id="daily-deadlines-list"></ul>
+                </div>
+            </div>
+            <div id="deadlines-view" class="view">
+                <h2>Fristen</h2>
+                <button id="add-deadline-btn" class="btn-primary">Neue Frist anlegen</button>
+                <table id="deadlines-table">
+                    <thead>
+                        <tr>
+                            <th>Frist</th>
+                            <th>Akte</th>
+                            <th>Enddatum</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deadlines-table-body">
+                        <!-- Deadline rows will be dynamically inserted here -->
+                    </tbody>
+                </table>
+
+                <!-- Add/Edit Deadline Modal -->
+                <div id="deadline-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn">&times;</span>
+                        <h3 id="deadline-modal-title">Neue Frist anlegen</h3>
+                        <form id="deadline-form">
+                            <input type="hidden" id="deadline-id">
+                            <div class="form-group">
+                                <label for="deadline-title">Fristbezeichnung</label>
+                                <input type="text" id="deadline-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="deadline-case-select">Zugehörige Akte</label>
+                                <select id="deadline-case-select">
+                                     <option value="">Keine Akte</option>
+                                </select>
+                            </div>
+                            <hr>
+                            <p><strong>Fristberechnung</strong></p>
+                            <div class="form-group">
+                                <label for="deadline-start-date">Startdatum</label>
+                                <input type="date" id="deadline-start-date">
+                            </div>
+                            <div class="form-group">
+                                <label for="deadline-days-to-add">Tage hinzufügen</label>
+                                <input type="number" id="deadline-days-to-add" placeholder="z.B. 14">
+                            </div>
+                             <button type="button" id="calculate-deadline-btn">Enddatum berechnen</button>
+                            <hr>
+                            <div class="form-group">
+                                <label for="deadline-end-date">Enddatum (Fristende)</label>
+                                <input type="date" id="deadline-end-date" required>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Speichern</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="reminders-view" class="view">
+                <h2>Wiedervorlagen</h2>
+                <p>Aufgaben, die in den nächsten 7 Tagen fällig sind.</p>
+                <div id="reminders-list" class="card-container">
+                    <!-- Reminder cards will be inserted here -->
+                </div>
+            </div>
+            <div id="backup-view" class="view">
+                <h2>Datensicherung</h2>
+                <div class="backup-actions">
+                    <p>Exportieren Sie alle Ihre Daten in eine einzelne JSON-Datei zur Sicherung oder Übertragung.</p>
+                    <button id="export-data-btn" class="btn-primary">Alle Daten exportieren</button>
+                    <hr>
+                    <p>Importieren Sie Daten aus einer JSON-Sicherungsdatei. <strong>Achtung:</strong> Alle aktuellen Daten werden überschrieben!</p>
+                    <button id="import-data-btn" class="btn-danger">Alle Daten importieren</button>
+                    <hr>
+                    <p>Laden Sie eine Textdatei herunter, die die Struktur der JSON-Sicherungsdatei erklärt.</p>
+                    <button id="download-structure-btn">Datenstruktur herunterladen</button>
+                </div>
+            </div>
+
+            <!-- Case Detail View -->
+            <div id="case-detail-view" class="view">
+                <!-- Content will be dynamically generated here -->
+            </div>
+        </main>
+    </div>
+    <div id="notification-container"></div>
+    <script src="renderer.js"></script>
+</body>
+</html>
