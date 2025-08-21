@@ -116,8 +116,8 @@
                                 <input type="text" id="case-title" required>
                             </div>
                             <div class="form-group">
-                                <label for="case-client-select">Zugehöriger Klient</label>
-                                <select id="case-client-select" required>
+                                <label for="case-client-select">Zugehöriger Klient (Optional)</label>
+                                <select id="case-client-select">
                                     <!-- Options will be populated from clients list -->
                                 </select>
                             </div>
@@ -260,6 +260,51 @@
             <!-- Case Detail View -->
             <div id="case-detail-view" class="view">
                 <!-- Content will be dynamically generated here -->
+            </div>
+
+            <!-- Add/Edit Entry Modal -->
+            <div id="move-doc-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn">&times;</span>
+                    <h3>Dokument verschieben</h3>
+                    <form id="move-doc-form">
+                        <input type="hidden" id="move-doc-id">
+                        <div class="form-group">
+                            <label for="move-doc-target-folder">Zielordner auswählen</label>
+                            <select id="move-doc-target-folder" required>
+                                <!-- Folder options will be populated here -->
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Verschieben</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="entry-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn">&times;</span>
+                    <h3 id="entry-modal-title">Neuer Eintrag</h3>
+                    <form id="entry-form">
+                        <input type="hidden" id="entry-id">
+                        <div class="form-group">
+                            <label for="entry-date">Datum</label>
+                            <input type="date" id="entry-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="entry-name">Titel</label>
+                            <input type="text" id="entry-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="entry-content">Inhalt</label>
+                            <textarea id="entry-content" rows="5"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Speichern</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </main>
     </div>

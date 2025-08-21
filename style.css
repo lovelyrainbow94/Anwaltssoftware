@@ -254,6 +254,65 @@ td .btn-edit, td .btn-delete {
     cursor: pointer;
 }
 
+.summary-section, .entries-section, .document-section {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.summary-section textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 1em;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.btn-icon svg {
+    width: 20px;
+    height: 20px;
+    color: #555;
+    transition: color 0.2s;
+}
+
+.btn-icon:hover svg {
+    color: #3498db;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.folder-children {
+    margin-left: 30px;
+    border-left: 2px solid #f0f2f5;
+    padding-left: 15px;
+}
+
+.folder-item > .document-item-name {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.folder-item svg {
+    margin-right: 5px;
+    color: #3498db;
+}
+
 .card h4 {
     color: #2980b9;
     margin-bottom: 10px;

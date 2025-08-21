@@ -364,21 +364,25 @@ document.addEventListener('DOMContentLoaded', () => {
     caseForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = caseIdInput.value;
+        const selectedClientId = document.getElementById('case-client-select').value;
         const caseData = {
             title: document.getElementById('case-title').value,
-            clientId: parseInt(document.getElementById('case-client-select').value, 10),
+            clientId: selectedClientId ? parseInt(selectedClientId, 10) : null,
             description: document.getElementById('case-description').value,
-            documents: id ? cases.find(c => c.id == id).documents : [] // Preserve documents on edit
         };
 
         if (id) {
             // Update existing case
             const index = cases.findIndex(c => c.id == id);
+            // Ensure we don't overwrite existing complex fields like documents, entries, summary
             cases[index] = { ...cases[index], ...caseData };
             showNotification('Akte erfolgreich aktualisiert', 'success');
         } else {
             // Create new case
             caseData.id = Date.now(); // Simple unique ID
+            caseData.summary = ''; // New summary field
+            caseData.documents = []; // Initialize documents
+            caseData.entries = []; // Initialize new entries array
             cases.push(caseData);
             showNotification('Akte erfolgreich erstellt', 'success');
         }
@@ -404,29 +408,68 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="case-detail-header">
                 <h3>${caseItem.title}</h3>
                 <p><strong>Klient:</strong> ${clientName}</p>
-                <p><strong>Beschreibung:</strong> ${caseItem.description || 'Keine Beschreibung'}</p>
+            </div>
+
+            <div class="summary-section">
+                <h4>Zusammenfassung</h4>
+                <textarea id="case-summary-textarea" rows="6" placeholder="Fassen Sie hier den Fall zusammen...">${caseItem.summary || ''}</textarea>
+                <button id="save-summary-btn" class="btn-primary">Zusammenfassung speichern</button>
+            </div>
+
+            <div class="entries-section">
+                <div class="section-header">
+                    <h4>Einträge</h4>
+                    <button id="add-entry-btn" class="btn-icon" title="Neuer Eintrag">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                    </button>
+                </div>
+                <div id="entries-list-container">
+                    <!-- Entries will be rendered here -->
+                </div>
             </div>
 
             <div class="document-section">
                 <h4>Dokumente & Verknüpfungen</h4>
-                <button class="btn-import-file" data-id="${caseItem.id}">Datei importieren</button>
-                <button class="btn-link-file" data-id="${caseItem.id}">Extern verknüpfen</button>
-                <ul class="document-list" id="document-list-container">
+                <button class="btn-icon btn-import-file" data-id="${caseItem.id}" title="Datei importieren">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
+                </button>
+                <button class="btn-icon btn-link-file" data-id="${caseItem.id}" title="Extern verknüpfen">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/></svg>
+                </button>
+                <button class="btn-icon btn-new-folder" title="Neuer Ordner">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-plus" viewBox="0 0 16 16"><path d="m.5 3 .04.87a1.99 1.99 0 0 0-.342 1.311l.637 7A2 2 0 0 0 2.826 14H9v-1H2.826a1 1 0 0 1-.995-.91l-.637-7A1 1 0 0 1 2.19 4h11.62a1 1 0 0 1 .996 1.09L14.54 8h1.005l.256-2.819A2 2 0 0 0 13.81 3H9.828a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 6.172 1H2.5a2 2 0 0 0-2 2zm5.672-1a1 1 0 0 1 .707.293L7.586 3H2.19c-.24 0-.47.042-.683.12L1.5 2.98a1 1 0 0 1 1-1h2.672a1 1 0 0 1 .707.293z"/><path d="M13.5 10a.5.5 0 0 1 .5.5V12h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V13h-1.5a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/></svg>
+                </button>
+                <div class="document-list" id="document-list-container">
                     <!-- Documents will be rendered here -->
-                </ul>
+                </div>
             </div>
         `;
 
         renderDocuments(caseItem);
+
+        renderEntries(caseItem);
 
         // Add event listeners for the new buttons
         caseDetailView.querySelector('.back-to-cases').addEventListener('click', () => {
             switchView('cases');
         });
 
+        caseDetailView.querySelector('#add-entry-btn').addEventListener('click', () => {
+            openEntryModal(caseItem.id);
+        });
+
+        caseDetailView.querySelector('#save-summary-btn').addEventListener('click', () => {
+            const summaryText = caseDetailView.querySelector('#case-summary-textarea').value;
+            caseItem.summary = summaryText;
+            saveCases();
+            showNotification('Zusammenfassung gespeichert', 'success');
+        });
+
         caseDetailView.querySelector('.btn-import-file').addEventListener('click', async () => {
             const result = await window.electronAPI.importFile(caseItem.id);
             if (result && !result.error) {
+                result.id = 'file_' + Date.now();
+                result.type = 'file';
                 caseItem.documents.push(result);
                 saveCases();
                 showCaseDetail(caseItem.id); // Re-render the detail view
@@ -439,6 +482,8 @@ document.addEventListener('DOMContentLoaded', () => {
         caseDetailView.querySelector('.btn-link-file').addEventListener('click', async () => {
             const result = await window.electronAPI.linkFile();
             if (result) {
+                result.id = 'file_' + Date.now();
+                result.type = 'file';
                 caseItem.documents.push(result);
                 saveCases();
                 showCaseDetail(caseItem.id); // Re-render the detail view
@@ -446,59 +491,178 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        caseDetailView.querySelector('.btn-new-folder').addEventListener('click', () => {
+            const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
+            if (folderName) {
+                const newFolder = {
+                    id: 'folder_' + Date.now(),
+                    type: 'folder',
+                    name: folderName,
+                    children: []
+                };
+                caseItem.documents.push(newFolder);
+                saveCases();
+                showCaseDetail(caseItem.id);
+                showNotification('Ordner erfolgreich erstellt', 'success');
+            }
+        });
+
         switchView('cases', true); // Switch to detail view mode
     }
 
-    function renderDocuments(caseItem) {
-        const container = document.getElementById('document-list-container');
-        container.innerHTML = '';
-        if (!caseItem.documents || caseItem.documents.length === 0) {
-            container.innerHTML = '<li>Keine Dokumente für diese Akte vorhanden.</li>';
+    function renderDocuments(caseItem, container, items) {
+        // Default to top-level if not provided
+        if (!container) container = document.getElementById('document-list-container');
+        if (!items) items = caseItem.documents;
+
+        container.innerHTML = ''; // Clear container before rendering
+
+        const folders = items.filter(item => item.type === 'folder');
+        const files = items.filter(item => item.type === 'file');
+
+        folders.forEach(folder => {
+            const folderEl = document.createElement('div');
+            folderEl.className = 'document-item folder-item';
+            folderEl.innerHTML = `
+                <div class="document-item-name">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-1.178 6.6A2 2 0 0 1 12.733 13H3.266a2 2 0 0 1-1.991-1.819l-1.178-6.6a2 2 0 0 1 .54-1.71zM2 4a1 1 0 0 0-1 1v6.819c0 .52.33.974.832 1.094l1.178 6.6A1 1 0 0 0 3.266 12h9.468a1 1 0 0 0 .992-.886l1.178-6.6A1 1 0 0 0 14 5H2z"/></svg>
+                    <span>${folder.name}</span>
+                </div>
+                <div class="document-item-actions">
+                    <button class="btn-delete-doc" data-id="${folder.id}">Löschen</button>
+                </div>`;
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'folder-children';
+            renderDocuments(caseItem, childrenContainer, folder.children); // Recursive call
+            folderEl.appendChild(childrenContainer);
+            container.appendChild(folderEl);
+        });
+
+        files.forEach(file => {
+            const fileEl = document.createElement('div');
+            fileEl.className = 'document-item';
+            fileEl.innerHTML = `
+                <div class="document-item-name">
+                    <span>${file.name}</span>
+                </div>
+                <div class="document-item-actions">
+                    <button class="btn-move-doc" data-id="${file.id}">Verschieben</button>
+                    <button class="btn-delete-doc" data-id="${file.id}">Löschen</button>
+                </div>`;
+            fileEl.querySelector('.document-item-name').addEventListener('click', () => window.electronAPI.openFile(file.path));
+            container.appendChild(fileEl);
+        });
+
+        // Add event listeners after rendering all items in this container
+        addDocumentActionListeners(caseItem, container);
+    }
+
+    function addDocumentActionListeners(caseItem, container) {
+        container.querySelectorAll('.btn-delete-doc').forEach(button => {
+            button.addEventListener('click', (e) => handleDeleteDoc(caseItem, e.target.dataset.id));
+        });
+        container.querySelectorAll('.btn-move-doc').forEach(button => {
+            button.addEventListener('click', (e) => openMoveDocModal(caseItem, e.target.dataset.id));
+        });
+    }
+
+    // Recursive function to find and remove an item from the tree
+    function findAndRemove(items, itemId) {
+        for (let i = items.length - 1; i >= 0; i--) {
+            const item = items[i];
+            if (item.id === itemId) {
+                items.splice(i, 1);
+                return item;
+            }
+            if (item.type === 'folder') {
+                const found = findAndRemove(item.children, itemId);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    async function handleDeleteDoc(caseItem, docId) {
+        const itemToRemove = findAndRemove(caseItem.documents, docId);
+        if (itemToRemove && confirm(`Sind Sie sicher, dass Sie "${itemToRemove.name}" löschen möchten?`)) {
+            // TODO: Recursively delete files if it's a folder
+            if (itemToRemove.type === 'file' && itemToRemove.path.includes('imported-case-files')) {
+                await window.electronAPI.deleteImportedFile(itemToRemove.path);
+            }
+            saveCases();
+            showCaseDetail(caseItem.id);
+            showNotification('Element erfolgreich entfernt', 'success');
+        } else {
+             // If not found or not confirmed, re-add it to avoid data loss
+            if (itemToRemove) caseItem.documents.push(itemToRemove);
+        }
+    }
+
+    function openMoveDocModal(caseItem, docId) {
+        const modal = document.getElementById('move-doc-modal');
+        const select = document.getElementById('move-doc-target-folder');
+        const docIdInput = document.getElementById('move-doc-id');
+        select.innerHTML = '';
+
+        // Find all folders
+        const folders = [];
+        function findFolders(items) {
+            items.forEach(item => {
+                if(item.type === 'folder') {
+                    folders.push(item);
+                    findFolders(item.children);
+                }
+            });
+        }
+        findFolders(caseItem.documents);
+
+        if (folders.length === 0) {
+            showNotification('Keine Zielordner vorhanden.', 'error');
             return;
         }
 
-        caseItem.documents.forEach((doc, index) => {
-            const docItem = document.createElement('li');
-            docItem.className = 'document-item';
-            const docTypeClass = doc.type === 'imported' ? 'doc-type-imported' : 'doc-type-linked';
-            docItem.innerHTML = `
-                <div>
-                    <span class="document-item-name">${doc.name}</span>
-                    <span class="doc-type-indicator ${docTypeClass}">${doc.type}</span>
-                </div>
-                <div class="document-item-actions">
-                    <button class="btn-delete-doc" data-index="${index}">Löschen</button>
-                </div>
-            `;
-
-            docItem.querySelector('.document-item-name').addEventListener('click', () => {
-                window.electronAPI.openFile(doc.path);
-            });
-
-            docItem.querySelector('.btn-delete-doc').addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (!confirm(`Sind Sie sicher, dass Sie das Dokument "${doc.name}" entfernen möchten?`)) {
-                    return;
-                }
-
-                if (doc.type === 'imported') {
-                    const result = await window.electronAPI.deleteImportedFile(doc.path);
-                    if (!result.success) {
-                        showNotification(`Fehler beim Löschen der Datei: ${result.error}`, 'error');
-                        return; // Stop if the file can't be deleted
-                    }
-                }
-
-                // Remove from array, save, and re-render
-                caseItem.documents.splice(index, 1);
-                saveCases();
-                showCaseDetail(caseItem.id);
-                showNotification('Dokument erfolgreich entfernt', 'success');
-            });
-
-            container.appendChild(docItem);
+        folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = folder.name;
+            select.appendChild(option);
         });
+
+        docIdInput.value = docId;
+        modal.style.display = 'block';
     }
+
+    const moveDocModal = document.getElementById('move-doc-modal');
+    moveDocModal.querySelector('.close-btn').addEventListener('click', () => moveDocModal.style.display = 'none');
+    document.getElementById('move-doc-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const docId = document.getElementById('move-doc-id').value;
+        const targetFolderId = document.getElementById('move-doc-target-folder').value;
+        const caseItem = cases.find(c => c.id === currentCaseIdForEntry);
+
+        const fileToMove = findAndRemove(caseItem.documents, docId);
+
+        function findFolderAndAdd(items, folderId, file) {
+            for (const item of items) {
+                if (item.id === folderId) {
+                    item.children.push(file);
+                    return true;
+                }
+                if (item.type === 'folder') {
+                    if (findFolderAndAdd(item.children, folderId, file)) return true;
+                }
+            }
+            return false;
+        }
+
+        if (fileToMove) {
+            findFolderAndAdd(caseItem.documents, targetFolderId, fileToMove);
+            saveCases();
+            showCaseDetail(caseItem.id);
+            showNotification('Dokument erfolgreich verschoben.', 'success');
+        }
+        moveDocModal.style.display = 'none';
+    });
 
     function renderCases() {
         caseList.innerHTML = '';
@@ -872,6 +1036,143 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (result.error) {
             showNotification(`Fehler: ${result.error}`, 'error');
         }
+    });
+
+    // --- Entry Management ---
+    const entryModal = document.getElementById('entry-modal');
+    const closeEntryModalBtn = entryModal.querySelector('.close-btn');
+    const entryForm = document.getElementById('entry-form');
+    const entryModalTitle = document.getElementById('entry-modal-title');
+    const entryIdInput = document.getElementById('entry-id');
+    let currentCaseIdForEntry = null;
+
+    function renderEntries(caseItem) {
+        const container = document.getElementById('entries-list-container');
+        container.innerHTML = ''; // Clear previous entries
+
+        if (!caseItem.entries || caseItem.entries.length === 0) {
+            container.innerHTML = '<p>Noch keine Einträge vorhanden.</p>';
+            return;
+        }
+
+        // Sort entries by date, newest first
+        const sortedEntries = caseItem.entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        sortedEntries.forEach(entry => {
+            const entryEl = document.createElement('div');
+            entryEl.className = 'card'; // Reuse card style
+            entryEl.style.marginBottom = '10px';
+            entryEl.innerHTML = `
+                <div class="section-header">
+                    <h5>${entry.name} (${entry.date})</h5>
+                    <div>
+                        <button class="btn-icon btn-delete-entry" data-id="${entry.id}" title="Eintrag löschen">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <p>${entry.content.replace(/\n/g, '<br>')}</p>
+                <div class="entry-documents-section">
+                    <div class="section-header">
+                        <h6>Dokumente zum Eintrag</h6>
+                        <div>
+                            <button class="btn-icon btn-import-file-entry" data-entry-id="${entry.id}" title="Datei importieren">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
+                            </button>
+                            <button class="btn-icon btn-new-folder-entry" data-entry-id="${entry.id}" title="Neuer Ordner">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-plus" viewBox="0 0 16 16"><path d="m.5 3 .04.87a1.99 1.99 0 0 0-.342 1.311l.637 7A2 2 0 0 0 2.826 14H9v-1H2.826a1 1 0 0 1-.995-.91l-.637-7A1 1 0 0 1 2.19 4h11.62a1 1 0 0 1 .996 1.09L14.54 8h1.005l.256-2.819A2 2 0 0 0 13.81 3H9.828a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 6.172 1H2.5a2 2 0 0 0-2 2zm5.672-1a1 1 0 0 1 .707.293L7.586 3H2.19c-.24 0-.47.042-.683.12L1.5 2.98a1 1 0 0 1 1-1h2.672a1 1 0 0 1 .707.293z"/><path d="M13.5 10a.5.5 0 0 1 .5.5V12h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V13h-1.5a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="entry-documents-list" id="entry-docs-${entry.id}"></div>
+                </div>
+            `;
+
+            // Render documents for this entry
+            renderDocuments(caseItem, entryEl.querySelector(`#entry-docs-${entry.id}`), entry.documents);
+
+            entryEl.querySelector('.btn-delete-entry').addEventListener('click', () => {
+                if (confirm(`Sind Sie sicher, dass Sie den Eintrag "${entry.name}" löschen möchten?`)) {
+                    // TODO: Also delete all associated imported files
+                    const caseToUpdate = cases.find(c => c.id === currentCaseIdForEntry);
+                    caseToUpdate.entries = caseToUpdate.entries.filter(e => e.id !== entry.id);
+                    saveCases();
+                    showCaseDetail(currentCaseIdForEntry);
+                    showNotification('Eintrag gelöscht', 'success');
+                }
+            });
+
+            entryEl.querySelector('.btn-import-file-entry').addEventListener('click', async () => {
+                const result = await window.electronAPI.importFile(currentCaseIdForEntry);
+                 if (result && !result.error) {
+                    result.id = 'file_' + Date.now();
+                    result.type = 'file';
+                    entry.documents.push(result);
+                    saveCases();
+                    showCaseDetail(currentCaseIdForEntry);
+                    showNotification('Datei zum Eintrag hinzugefügt', 'success');
+                }
+            });
+
+            entryEl.querySelector('.btn-new-folder-entry').addEventListener('click', () => {
+                const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
+                if (folderName) {
+                    const newFolder = {
+                        id: 'folder_' + Date.now(),
+                        type: 'folder',
+                        name: folderName,
+                        children: []
+                    };
+                    entry.documents.push(newFolder);
+                    saveCases();
+                    showCaseDetail(currentCaseIdForEntry);
+                    showNotification('Ordner erfolgreich erstellt', 'success');
+                }
+            });
+
+            container.appendChild(entryEl);
+        });
+    }
+
+    function openEntryModal(caseId, entryId = null) {
+        entryForm.reset();
+        currentCaseIdForEntry = caseId;
+        // For now, only new entry mode is implemented
+        entryModalTitle.textContent = 'Neuer Eintrag';
+        entryIdInput.value = '';
+        document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+        entryModal.style.display = 'block';
+    }
+
+    function closeEntryModal() {
+        entryModal.style.display = 'none';
+    }
+
+    closeEntryModalBtn.addEventListener('click', closeEntryModal);
+    window.addEventListener('click', (event) => {
+        if (event.target == entryModal) {
+            closeEntryModal();
+        }
+    });
+
+    entryForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const caseItem = cases.find(c => c.id === currentCaseIdForEntry);
+        if (!caseItem) return;
+
+        const entryData = {
+            id: Date.now(),
+            date: document.getElementById('entry-date').value,
+            name: document.getElementById('entry-name').value,
+            content: document.getElementById('entry-content').value,
+            documents: [] // Document attachment to be implemented later
+        };
+
+        caseItem.entries.push(entryData);
+        saveCases();
+        showCaseDetail(currentCaseIdForEntry); // Re-render detail view
+        closeEntryModal();
+        showNotification('Eintrag erfolgreich erstellt', 'success');
     });
 });
 
