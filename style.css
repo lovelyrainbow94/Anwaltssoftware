@@ -313,6 +313,85 @@ td .btn-edit, td .btn-delete {
     color: #3498db;
 }
 
+.collapsible-section .section-content {
+    max-height: 1000px; /* Set a large max-height for transition */
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+    padding: 20px;
+}
+
+.collapsible-section.collapsed .section-content {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: none;
+}
+
+.collapsible-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.collapsible-section {
+    background: none;
+    padding: 0;
+    box-shadow: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.collapse-icon {
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid #333;
+    border-bottom: 2px solid #333;
+    transform: rotate(45deg);
+    transition: transform 0.3s;
+}
+
+.collapsed .collapse-icon {
+    transform: rotate(-45deg);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Searchable Dropdown */
+.searchable-dropdown {
+    position: relative;
+}
+
+.search-results {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: white;
+    z-index: 102; /* Higher than other modal content */
+}
+
+.search-results div {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.search-results div:hover {
+    background-color: #f1f1f1;
+}
+
 .card h4 {
     color: #2980b9;
     margin-bottom: 10px;
@@ -322,6 +401,10 @@ td .btn-edit, td .btn-delete {
     font-size: 0.9em;
     color: #7f8c8d;
     margin-bottom: 5px;
+}
+
+#entry-modal {
+    z-index: 101;
 }
 
 /* Modal Styles */

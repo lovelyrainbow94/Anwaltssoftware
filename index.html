@@ -116,10 +116,12 @@
                                 <input type="text" id="case-title" required>
                             </div>
                             <div class="form-group">
-                                <label for="case-client-select">Zugehöriger Klient (Optional)</label>
-                                <select id="case-client-select">
-                                    <!-- Options will be populated from clients list -->
-                                </select>
+                                <label for="case-client-search">Zugehöriger Klient (Optional)</label>
+                                <div class="searchable-dropdown">
+                                    <input type="text" id="case-client-search" placeholder="Klient suchen...">
+                                    <input type="hidden" id="case-client-select">
+                                    <div class="search-results" id="case-client-search-results"></div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label for="case-description">Beschreibung</label>

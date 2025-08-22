@@ -292,10 +292,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const caseCard = document.createElement('div');
             caseCard.className = 'card';
             caseCard.innerHTML = `
-                <h4>${caseItem.title}</h4>
+                <div class="section-header">
+                    <h4>${caseItem.title}</h4>
+                    <div>
+                        <button class="btn-icon btn-edit" data-id="${caseItem.id}" title="Akte bearbeiten">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
+                        </button>
+                        <button class="btn-icon btn-delete" data-id="${caseItem.id}" title="Akte löschen">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                        </button>
+                    </div>
+                </div>
                 <p>Klient: ${clientName}</p>
-                <button class="btn-edit" data-id="${caseItem.id}">Bearbeiten</button>
-                <button class="btn-delete" data-id="${caseItem.id}">Löschen</button>
             `;
             // Edit button
             caseCard.querySelector('.btn-edit').addEventListener('click', (e) => {
@@ -313,31 +321,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function populateClientSelect() {
-        caseClientSelect.innerHTML = '<option value="" disabled selected>Bitte Klient wählen</option>';
-        clients.forEach(client => {
-            const option = document.createElement('option');
-            option.value = client.id;
-            option.textContent = client.name;
-            caseClientSelect.appendChild(option);
+    function setupClientSearch(selectedClientId = null) {
+        const searchInput = document.getElementById('case-client-search');
+        const resultsContainer = document.getElementById('case-client-search-results');
+        const hiddenInput = document.getElementById('case-client-select');
+
+        // Pre-fill if editing
+        if (selectedClientId) {
+            const client = clients.find(c => c.id === selectedClientId);
+            if (client) {
+                searchInput.value = client.name;
+                hiddenInput.value = client.id;
+            }
+        } else {
+            searchInput.value = '';
+            hiddenInput.value = '';
+        }
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase();
+            if (!query) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            const filteredClients = clients.filter(client => client.name.toLowerCase().includes(query));
+            resultsContainer.innerHTML = '';
+            filteredClients.forEach(client => {
+                const resultDiv = document.createElement('div');
+                resultDiv.textContent = client.name;
+                resultDiv.addEventListener('click', () => {
+                    searchInput.value = client.name;
+                    hiddenInput.value = client.id;
+                    resultsContainer.style.display = 'none';
+                });
+                resultsContainer.appendChild(resultDiv);
+            });
+            resultsContainer.style.display = 'block';
+        });
+
+        // Hide results when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.searchable-dropdown')) {
+                resultsContainer.style.display = 'none';
+            }
         });
     }
 
     function openCaseModal(id = null) {
         caseForm.reset();
-        populateClientSelect();
         if (id) {
             // Edit mode
             const caseItem = cases.find(c => c.id === id);
             caseModalTitle.textContent = 'Akte bearbeiten';
             caseIdInput.value = caseItem.id;
             document.getElementById('case-title').value = caseItem.title;
-            document.getElementById('case-client-select').value = caseItem.clientId;
+            setupClientSearch(caseItem.clientId);
             document.getElementById('case-description').value = caseItem.description;
         } else {
             // Create mode
             caseModalTitle.textContent = 'Neue Akte anlegen';
             caseIdInput.value = '';
+            setupClientSearch();
         }
         caseModal.style.display = 'block';
     }
@@ -400,6 +444,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const caseItem = cases.find(c => c.id === caseId);
         if (!caseItem) return;
 
+        // Ensure new data fields exist
+        if (!caseItem.disputeState) caseItem.disputeState = '';
+
         const client = clients.find(c => c.id === caseItem.clientId);
         const clientName = client ? client.name : 'Unbekannter Klient';
 
@@ -410,43 +457,63 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p><strong>Klient:</strong> ${clientName}</p>
             </div>
 
-            <div class="summary-section">
-                <h4>Zusammenfassung</h4>
-                <textarea id="case-summary-textarea" rows="6" placeholder="Fassen Sie hier den Fall zusammen...">${caseItem.summary || ''}</textarea>
-                <button id="save-summary-btn" class="btn-primary">Zusammenfassung speichern</button>
+            <div class="collapsible-section summary-section collapsed">
+                <div class="section-header collapsible-header">
+                    <h4>Zusammenfassung</h4>
+                    <span class="collapse-icon"></span>
+                </div>
+                <div class="section-content">
+                    <textarea id="case-summary-textarea" rows="6" placeholder="Fassen Sie hier den Fall zusammen...">${caseItem.summary || ''}</textarea>
+                    <button id="save-summary-btn" class="btn-primary">Zusammenfassung speichern</button>
+                </div>
             </div>
 
-            <div class="entries-section">
-                <div class="section-header">
-                    <h4>Einträge</h4>
-                    <button id="add-entry-btn" class="btn-icon" title="Neuer Eintrag">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
-                    </button>
+            <div class="collapsible-section dispute-state-section collapsed">
+                <div class="section-header collapsible-header">
+                    <h4>Sach- und Streitstand</h4>
+                    <span class="collapse-icon"></span>
                 </div>
-                <div id="entries-list-container">
+                <div class="section-content">
+                    <textarea id="case-dispute-state-textarea" rows="6" placeholder="Beschreiben Sie hier den Sach- und Streitstand...">${caseItem.disputeState}</textarea>
+                    <button id="save-dispute-state-btn" class="btn-primary">Sach- und Streitstand speichern</button>
+                </div>
+            </div>
+
+            <div class="collapsible-section entries-section collapsed">
+                 <div class="section-header collapsible-header">
+                    <h4>Einträge</h4>
+                     <div class="header-actions">
+                        <button id="add-entry-btn" class="btn-icon" title="Neuer Eintrag">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                        </button>
+                        <span class="collapse-icon"></span>
+                    </div>
+                </div>
+                <div class="section-content" id="entries-list-container">
                     <!-- Entries will be rendered here -->
                 </div>
             </div>
 
-            <div class="document-section">
-                <h4>Dokumente & Verknüpfungen</h4>
-                <button class="btn-icon btn-import-file" data-id="${caseItem.id}" title="Datei importieren">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
-                </button>
-                <button class="btn-icon btn-link-file" data-id="${caseItem.id}" title="Extern verknüpfen">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/></svg>
-                </button>
-                <button class="btn-icon btn-new-folder" title="Neuer Ordner">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-plus" viewBox="0 0 16 16"><path d="m.5 3 .04.87a1.99 1.99 0 0 0-.342 1.311l.637 7A2 2 0 0 0 2.826 14H9v-1H2.826a1 1 0 0 1-.995-.91l-.637-7A1 1 0 0 1 2.19 4h11.62a1 1 0 0 1 .996 1.09L14.54 8h1.005l.256-2.819A2 2 0 0 0 13.81 3H9.828a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 6.172 1H2.5a2 2 0 0 0-2 2zm5.672-1a1 1 0 0 1 .707.293L7.586 3H2.19c-.24 0-.47.042-.683.12L1.5 2.98a1 1 0 0 1 1-1h2.672a1 1 0 0 1 .707.293z"/><path d="M13.5 10a.5.5 0 0 1 .5.5V12h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V13h-1.5a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/></svg>
-                </button>
-                <div class="document-list" id="document-list-container">
+            <div class="collapsible-section document-section collapsed">
+                <div class="section-header collapsible-header">
+                    <h4>Dokumente & Verknüpfungen</h4>
+                    <div class="header-actions">
+                        <button class="btn-icon btn-import-file" data-id="${caseItem.id}" title="Datei importieren">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
+                        </button>
+                        <button class="btn-icon btn-new-folder" title="Neuer Ordner">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-plus" viewBox="0 0 16 16"><path d="m.5 3 .04.87a1.99 1.99 0 0 0-.342 1.311l.637 7A2 2 0 0 0 2.826 14H9v-1H2.826a1 1 0 0 1-.995-.91l-.637-7A1 1 0 0 1 2.19 4h11.62a1 1 0 0 1 .996 1.09L14.54 8h1.005l.256-2.819A2 2 0 0 0 13.81 3H9.828a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 6.172 1H2.5a2 2 0 0 0-2 2zm5.672-1a1 1 0 0 1 .707.293L7.586 3H2.19c-.24 0-.47.042-.683.12L1.5 2.98a1 1 0 0 1 1-1h2.672a1 1 0 0 1 .707.293z"/><path d="M13.5 10a.5.5 0 0 1 .5.5V12h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V13h-1.5a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/></svg>
+                        </button>
+                        <span class="collapse-icon"></span>
+                    </div>
+                </div>
+                <div class="section-content" id="document-list-container">
                     <!-- Documents will be rendered here -->
                 </div>
             </div>
         `;
 
         renderDocuments(caseItem);
-
         renderEntries(caseItem);
 
         // Add event listeners for the new buttons
@@ -465,6 +532,13 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('Zusammenfassung gespeichert', 'success');
         });
 
+        caseDetailView.querySelector('#save-dispute-state-btn').addEventListener('click', () => {
+            const disputeStateText = caseDetailView.querySelector('#case-dispute-state-textarea').value;
+            caseItem.disputeState = disputeStateText;
+            saveCases();
+            showNotification('Sach- und Streitstand gespeichert', 'success');
+        });
+
         caseDetailView.querySelector('.btn-import-file').addEventListener('click', async () => {
             const result = await window.electronAPI.importFile(caseItem.id);
             if (result && !result.error) {
@@ -476,18 +550,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNotification('Datei erfolgreich importiert', 'success');
             } else if (result && result.error) {
                 showNotification(`Fehler: ${result.error}`, 'error');
-            }
-        });
-
-        caseDetailView.querySelector('.btn-link-file').addEventListener('click', async () => {
-            const result = await window.electronAPI.linkFile();
-            if (result) {
-                result.id = 'file_' + Date.now();
-                result.type = 'file';
-                caseItem.documents.push(result);
-                saveCases();
-                showCaseDetail(caseItem.id); // Re-render the detail view
-                showNotification('Datei erfolgreich verknüpft', 'success');
             }
         });
 
@@ -505,6 +567,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 showCaseDetail(caseItem.id);
                 showNotification('Ordner erfolgreich erstellt', 'success');
             }
+        });
+
+        // Add collapsible functionality
+        caseDetailView.querySelectorAll('.collapsible-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const section = header.closest('.collapsible-section');
+                section.classList.toggle('collapsed');
+            });
         });
 
         switchView('cases', true); // Switch to detail view mode
@@ -1066,6 +1136,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="section-header">
                     <h5>${entry.name} (${entry.date})</h5>
                     <div>
+                        <button class="btn-icon btn-edit-entry" data-id="${entry.id}" title="Eintrag bearbeiten">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
+                        </button>
                         <button class="btn-icon btn-delete-entry" data-id="${entry.id}" title="Eintrag löschen">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
                         </button>
@@ -1090,6 +1163,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Render documents for this entry
             renderDocuments(caseItem, entryEl.querySelector(`#entry-docs-${entry.id}`), entry.documents);
+
+            entryEl.querySelector('.btn-edit-entry').addEventListener('click', () => {
+                openEntryModal(currentCaseIdForEntry, entry.id);
+            });
 
             entryEl.querySelector('.btn-delete-entry').addEventListener('click', () => {
                 if (confirm(`Sind Sie sicher, dass Sie den Eintrag "${entry.name}" löschen möchten?`)) {
@@ -1137,10 +1214,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEntryModal(caseId, entryId = null) {
         entryForm.reset();
         currentCaseIdForEntry = caseId;
-        // For now, only new entry mode is implemented
-        entryModalTitle.textContent = 'Neuer Eintrag';
-        entryIdInput.value = '';
-        document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+        const caseItem = cases.find(c => c.id === caseId);
+        if (!caseItem) return;
+
+        if (entryId) {
+            // Edit mode
+            const entry = caseItem.entries.find(e => e.id === entryId);
+            if (!entry) return;
+            entryModalTitle.textContent = 'Eintrag bearbeiten';
+            entryIdInput.value = entry.id;
+            document.getElementById('entry-date').value = entry.date;
+            document.getElementById('entry-name').value = entry.name;
+            document.getElementById('entry-content').value = entry.content;
+        } else {
+            // Create mode
+            entryModalTitle.textContent = 'Neuer Eintrag';
+            entryIdInput.value = '';
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+        }
         entryModal.style.display = 'block';
     }
 
@@ -1160,19 +1251,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const caseItem = cases.find(c => c.id === currentCaseIdForEntry);
         if (!caseItem) return;
 
+        const entryId = entryIdInput.value;
         const entryData = {
-            id: Date.now(),
             date: document.getElementById('entry-date').value,
             name: document.getElementById('entry-name').value,
             content: document.getElementById('entry-content').value,
-            documents: [] // Document attachment to be implemented later
         };
 
-        caseItem.entries.push(entryData);
+        if (entryId) {
+            // Update existing entry
+            const entryIndex = caseItem.entries.findIndex(e => e.id == entryId);
+            if (entryIndex > -1) {
+                // Preserve ID and documents array
+                caseItem.entries[entryIndex] = {
+                    ...caseItem.entries[entryIndex],
+                    ...entryData
+                };
+                showNotification('Eintrag erfolgreich aktualisiert', 'success');
+            }
+        } else {
+            // Create new entry
+            entryData.id = Date.now();
+            entryData.documents = [];
+            caseItem.entries.push(entryData);
+            showNotification('Eintrag erfolgreich erstellt', 'success');
+        }
+
         saveCases();
         showCaseDetail(currentCaseIdForEntry); // Re-render detail view
         closeEntryModal();
-        showNotification('Eintrag erfolgreich erstellt', 'success');
     });
 });
 
