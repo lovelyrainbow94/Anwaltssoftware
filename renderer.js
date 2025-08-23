@@ -463,6 +463,17 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCases();
     renderCases();
 
+    function findItem(items, itemId) {
+        for (const item of items) {
+            if (item.id == itemId) return item;
+            if (item.type === 'folder') {
+                const found = findItem(item.children, itemId);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
     function showCaseDetail(caseId) {
         const caseItem = cases.find(c => c.id === caseId);
         if (!caseItem) return;
@@ -556,11 +567,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     <!-- Documents will be rendered here -->
                 </div>
             </div>
+
+            <div class="collapsible-section tasks-section collapsed">
+                <div class="section-header collapsible-header">
+                    <h4>Zugehörige Aufgaben</h4>
+                     <div class="header-actions">
+                        <button id="add-task-to-case-btn" class="btn-icon" title="Neue Aufgabe für diese Akte anlegen">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                        </button>
+                        <span class="collapse-icon"></span>
+                    </div>
+                </div>
+                <div class="section-content" id="associated-tasks-list">
+                    <!-- Associated tasks will be rendered here -->
+                </div>
+            </div>
         `;
 
         renderMasterData(caseItem);
-        renderHierarchy(document.getElementById('document-list-container'), caseItem.documents, 'document');
-        renderHierarchy(document.getElementById('entries-list-container'), caseItem.entries, 'entry');
+        renderDocuments(caseItem); // Revert to simple render function
+        renderEntries(caseItem);   // Revert to simple render function
+        renderAssociatedTasks(caseItem.id);
 
         // Add collapsible functionality
         caseDetailView.querySelectorAll('.collapsible-header').forEach(header => {
@@ -666,6 +693,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Functionality to be implemented later
                 showNotification('Funktion noch nicht implementiert.', 'error');
             }
+            else if (button.id === 'add-task-to-case-btn') {
+                openTaskModal(null, caseItem.id);
+            }
             // Case-level document buttons
             else if (button.id === 'btn-import-file') {
                 const result = await window.electronAPI.importFile(caseItem.id);
@@ -686,13 +716,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     showCaseDetail(caseItem.id);
                     showNotification('Ordner erfolgreich erstellt', 'success');
                 }
-            }
-             else if (button.id === 'btn-new-entry-folder') {
-                 const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
+            } else if (button.id === 'btn-new-entry-folder') {
+                const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
                 if (folderName) {
-                    // This is simplified. In a real app, you'd need to know which entry to add to.
-                    // For now, let's assume we add to the case's entries array as a special entry type.
-                    // This part of the logic needs to be revisited in the next step.
                     caseItem.entries.push({ id: 'folder_' + Date.now(), type: 'folder', name: folderName, children: [] });
                     saveCases();
                     showCaseDetail(caseItem.id);
@@ -767,91 +793,29 @@ document.addEventListener('DOMContentLoaded', () => {
         addDocumentActionListeners(caseItem, container);
     }
 
-    function addDocumentActionListeners(caseItem, container) {
-        container.querySelectorAll('.btn-delete-doc').forEach(button => {
-            button.addEventListener('click', (e) => handleDeleteDoc(caseItem, e.target.dataset.id));
-        });
-        container.querySelectorAll('.btn-move-doc').forEach(button => {
-            button.addEventListener('click', (e) => openMoveDocModal(caseItem, e.target.dataset.id));
-        });
-    }
+    function renderDocuments(caseItem) {
+        const container = document.getElementById('document-list-container');
+        container.innerHTML = '';
+        const items = caseItem.documents || [];
 
-    function renderHierarchy(container, items, itemType) {
-        container.innerHTML = ''; // Clear container before rendering
-
-        // Sort if it's entries, otherwise keep original order
-        const sortedItems = itemType === 'entry' ? [...items].sort((a, b) => new Date(b.date) - new Date(a.date)) : items;
-
-        const folders = sortedItems.filter(item => item.type === 'folder');
-        const files = sortedItems.filter(item => item.type !== 'folder'); // Files or entries
-
-        folders.forEach(folder => {
-            const folderEl = document.createElement('div');
-            folderEl.className = 'document-item folder-item';
-            folderEl.dataset.id = folder.id;
-            folderEl.dataset.itemType = itemType; // Mark folder type
-            folderEl.innerHTML = `
-                <div class="document-item-name collapsible-folder-header">
-                    <span class="collapse-icon"></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-1.178 6.6A2 2 0 0 1 12.733 13H3.266a2 2 0 0 1-1.991-1.819l-1.178-6.6a2 2 0 0 1 .54-1.71zM2 4a1 1 0 0 0-1 1v6.819c0 .52.33.974.832 1.094l1.178 6.6A1 1 0 0 0 3.266 12h9.468a1 1 0 0 0 .992-.886l1.178-6.6A1 1 0 0 0 14 5H2z"/></svg>
-                    <span>${folder.name}</span>
-                </div>
-                <div class="document-item-actions">
-                    <button class="btn-icon btn-delete" data-id="${folder.id}" title="Ordner löschen">...</button>
-                </div>
-                <div class="folder-children collapsed"></div>`;
-
-            const childrenContainer = folderEl.querySelector('.folder-children');
-            renderHierarchy(childrenContainer, folder.children, itemType); // Recursive call
-            container.appendChild(folderEl);
-        });
-
-        files.forEach(item => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'document-item';
-            itemEl.dataset.id = item.id;
-            itemEl.dataset.itemType = itemType; // Mark item type
-            itemEl.draggable = true;
-
-            if (itemType === 'entry') {
-                 itemEl.innerHTML = `
-                    <div class="document-item-name">
-                        <span>${item.date} - ${item.name}</span>
-                    </div>
-                    <div class="document-item-actions">
-                         <button class="btn-icon btn-edit-entry" data-id="${item.id}" title="Eintrag bearbeiten">...</button>
-                         <button class="btn-icon btn-delete" data-id="${item.id}" title="Eintrag löschen">...</button>
-                    </div>`;
-            } else { // 'document'
-                 itemEl.innerHTML = `
-                    <div class="document-item-name">
-                        <span>${item.name}</span>
-                    </div>
-                    <div class="document-item-actions">
-                        <button class="btn-move-doc" data-id="${item.id}">Verschieben</button>
-                        <button class="btn-icon btn-delete" data-id="${item.id}">Löschen</button>
-                    </div>`;
-            }
-            container.appendChild(itemEl);
-        });
-    }
-
-    function findItem(items, itemId) {
-        for (const item of items) {
-            if (item.id == itemId) return item;
-            if (item.type === 'folder') {
-                const found = findItem(item.children, itemId);
-                if (found) return found;
-            }
+        if (items.length === 0) {
+            container.innerHTML = '<p>Keine Dokumente vorhanden.</p>';
+            return;
         }
-        return null;
+
+        items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'document-item';
+            el.textContent = item.name;
+            container.appendChild(el);
+        });
     }
 
     // Recursive function to find and remove an item from the tree
     function findAndRemove(items, itemId) {
         for (let i = items.length - 1; i >= 0; i--) {
             const item = items[i];
-            if (item.id === itemId) {
+            if (item.id == itemId) {
                 items.splice(i, 1);
                 return item;
             }
@@ -863,20 +827,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    async function handleDeleteDoc(caseItem, docId) {
-        const itemToRemove = findAndRemove(caseItem.documents, docId);
-        if (itemToRemove && confirm(`Sind Sie sicher, dass Sie "${itemToRemove.name}" löschen möchten?`)) {
-            // TODO: Recursively delete files if it's a folder
-            if (itemToRemove.type === 'file' && itemToRemove.path.includes('imported-case-files')) {
-                await window.electronAPI.deleteImportedFile(itemToRemove.path);
-            }
-            saveCases();
-            showCaseDetail(caseItem.id);
-            showNotification('Element erfolgreich entfernt', 'success');
-        } else {
-             // If not found or not confirmed, re-add it to avoid data loss
-            if (itemToRemove) caseItem.documents.push(itemToRemove);
+    function renderEntries(caseItem) {
+        const container = document.getElementById('entries-list-container');
+        container.innerHTML = '';
+        const items = caseItem.entries || [];
+
+        if (items.length === 0) {
+            container.innerHTML = '<p>Noch keine Einträge vorhanden.</p>';
+            return;
         }
+
+        items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.textContent = `${item.date} - ${item.name}`;
+            container.appendChild(el);
+        });
     }
 
     function openMoveDocModal(caseItem, docId) {
@@ -1094,7 +1060,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function openTaskModal(id = null) {
+    function renderAssociatedTasks(caseId) {
+        const container = document.getElementById('associated-tasks-list');
+        const associatedTasks = tasks.filter(task => task.caseId === caseId);
+
+        if (associatedTasks.length === 0) {
+            container.innerHTML = '<p>Keine Aufgaben für diese Akte vorhanden.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        associatedTasks.forEach(task => {
+            const taskCard = document.createElement('div');
+            taskCard.className = 'card';
+            taskCard.innerHTML = `
+                <h4>${task.title}</h4>
+                <p><strong>Fällig:</strong> ${task.dueDate || 'Kein Datum'}</p>
+                <p><strong>Status:</strong> ${task.status}</p>
+            `;
+            container.appendChild(taskCard);
+        });
+    }
+
+    function openTaskModal(id = null, preselectedCaseId = null) {
         taskForm.reset();
         populateCaseSelectForTask();
         if (id) {
@@ -1110,6 +1098,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Create mode
             taskModalTitle.textContent = 'Neue Aufgabe anlegen';
             taskIdInput.value = '';
+            if (preselectedCaseId) {
+                document.getElementById('task-case-select').value = preselectedCaseId;
+            }
         }
         taskModal.style.display = 'block';
     }
