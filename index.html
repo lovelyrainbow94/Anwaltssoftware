@@ -265,6 +265,16 @@
             </div>
 
             <!-- Add/Edit Entry Modal -->
+            <div id="entry-type-modal" class="modal">
+                <div class="modal-content">
+                    <h3>Eintragstyp auswählen</h3>
+                    <div class="form-actions">
+                        <button type="button" id="select-entry-type-note" class="btn-primary">Vermerk</button>
+                        <button type="button" id="select-entry-type-message" class="btn-primary">Nachricht</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="move-doc-modal" class="modal">
                 <div class="modal-content">
                     <span class="close-btn">&times;</span>
@@ -297,6 +307,14 @@
                         <div class="form-group">
                             <label for="entry-name">Titel</label>
                             <input type="text" id="entry-name" required>
+                        </div>
+                        <div class="form-group entry-message-field" style="display: none;">
+                            <label for="entry-sender">Absender</label>
+                            <input type="text" id="entry-sender">
+                        </div>
+                        <div class="form-group entry-message-field" style="display: none;">
+                            <label for="entry-subject">Betreff</label>
+                            <input type="text" id="entry-subject">
                         </div>
                         <div class="form-group">
                             <label for="entry-content">Inhalt</label>

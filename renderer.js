@@ -701,7 +701,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Entry actions
             else if (button.id === 'add-entry-btn') {
-                openEntryModal(caseItem.id);
+                currentCaseIdForEntry = caseItem.id;
+                entryTypeModal.style.display = 'block';
             }
             else if (button.classList.contains('btn-edit-entry')) {
                 openEntryModal(caseItem.id, button.dataset.id);
@@ -1369,6 +1370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const entryForm = document.getElementById('entry-form');
     const entryModalTitle = document.getElementById('entry-modal-title');
     const entryIdInput = document.getElementById('entry-id');
+    const entryTypeModal = document.getElementById('entry-type-modal');
     let currentCaseIdForEntry = null;
     let tempEntryDocs = [];
 
@@ -1482,27 +1484,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function openEntryModal(caseId, entryId = null) {
+    function openEntryModal(caseId, entryType, entryId = null) {
         entryForm.reset();
         currentCaseIdForEntry = caseId;
         const caseItem = cases.find(c => c.id === caseId);
         if (!caseItem) return;
 
+        // Show/hide fields based on type
+        document.querySelectorAll('.entry-message-field').forEach(field => {
+            field.style.display = entryType === 'message' ? 'block' : 'none';
+        });
+
         if (entryId) {
             // Edit mode
-            const entry = caseItem.entries.find(e => e.id === entryId);
+            const entry = findItem(caseItem.entries, entryId);
             if (!entry) return;
             entryModalTitle.textContent = 'Eintrag bearbeiten';
             entryIdInput.value = entry.id;
             document.getElementById('entry-date').value = entry.date;
             document.getElementById('entry-name').value = entry.name;
             document.getElementById('entry-content').value = entry.content;
-            // Deep clone documents for temporary editing
+            if(entry.entryType === 'message') {
+                document.getElementById('entry-sender').value = entry.sender || '';
+                document.getElementById('entry-subject').value = entry.subject || '';
+            }
             tempEntryDocs = JSON.parse(JSON.stringify(entry.documents || []));
         } else {
             // Create mode
-            entryModalTitle.textContent = 'Neuer Eintrag';
+            entryModalTitle.textContent = `Neuer Eintrag: ${entryType === 'note' ? 'Vermerk' : 'Nachricht'}`;
             entryIdInput.value = '';
+            entryForm.dataset.entryType = entryType; // Store type for submission
             document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
             tempEntryDocs = [];
         }
@@ -1516,9 +1527,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     closeEntryModalBtn.addEventListener('click', closeEntryModal);
+    entryTypeModal.addEventListener('click', (e) => {
+        if (e.target.id === 'select-entry-type-note') {
+            entryTypeModal.style.display = 'none';
+            openEntryModal(currentCaseIdForEntry, 'note');
+        } else if (e.target.id === 'select-entry-type-message') {
+            entryTypeModal.style.display = 'none';
+            openEntryModal(currentCaseIdForEntry, 'message');
+        }
+    });
+
     window.addEventListener('click', (event) => {
         if (event.target == entryModal) {
             closeEntryModal();
+        }
+        if (event.target == entryTypeModal) {
+            entryTypeModal.style.display = 'none';
         }
     });
 
@@ -1541,11 +1565,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!caseItem) return;
 
         const entryId = entryIdInput.value;
+        const entryType = entryForm.dataset.entryType;
         const entryData = {
             date: document.getElementById('entry-date').value,
             name: document.getElementById('entry-name').value,
             content: document.getElementById('entry-content').value,
+            entryType: entryType
         };
+
+        if (entryType === 'message') {
+            entryData.sender = document.getElementById('entry-sender').value;
+            entryData.subject = document.getElementById('entry-subject').value;
+        }
 
         if (entryId) {
             // Update existing entry
