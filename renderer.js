@@ -590,6 +590,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveCases();
                 showNotification('Sach- und Streitstand gespeichert', 'success');
             }
+            else if (button.id === 'save-master-data-btn') {
+                caseItem.masterData.legalInsurance = {
+                    name: document.getElementById('insurance-name').value,
+                    contractNumber: document.getElementById('insurance-contract').value,
+                    claimNumber: document.getElementById('insurance-claim').value
+                };
+                saveCases();
+                showNotification('Stammdaten gespeichert', 'success');
+            }
+            else if (button.id === 'add-opponent-btn') {
+                // Functionality to be implemented later
+                showNotification('Funktion noch nicht implementiert.', 'error');
+            }
             // Case-level document buttons
             else if (button.classList.contains('btn-import-file')) {
                 const result = await window.electronAPI.importFile(caseItem.id);
@@ -858,21 +871,6 @@ document.addEventListener('DOMContentLoaded', () => {
             opponentsContainer.innerHTML = '<p>Keine Gegner erfasst.</p>';
         }
     }
-
-    document.getElementById('save-master-data-btn').addEventListener('click', () => {
-        const caseItem = cases.find(c => c.id === currentCaseIdForEntry);
-        if (!caseItem) return;
-
-        caseItem.masterData.legalInsurance = {
-            name: document.getElementById('insurance-name').value,
-            contractNumber: document.getElementById('insurance-contract').value,
-            claimNumber: document.getElementById('insurance-claim').value
-        };
-
-        saveCases();
-        showNotification('Stammdaten gespeichert', 'success');
-    });
-
 
     function renderCases() {
         caseList.innerHTML = '';
