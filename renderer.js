@@ -528,6 +528,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button id="add-entry-btn" class="btn-icon" title="Neuer Eintrag">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
                         </button>
+                        <button id="btn-new-entry-folder" class="btn-icon" title="Neuer Ordner für Einträge">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-plus" viewBox="0 0 16 16"><path d="m.5 3 .04.87a1.99 1.99 0 0 0-.342 1.311l.637 7A2 2 0 0 0 2.826 14H9v-1H2.826a1 1 0 0 1-.995-.91l-.637-7A1 1 0 0 1 2.19 4h11.62a1 1 0 0 1 .996 1.09L14.54 8h1.005l.256-2.819A2 2 0 0 0 13.81 3H9.828a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 6.172 1H2.5a2 2 0 0 0-2 2zm5.672-1a1 1 0 0 1 .707.293L7.586 3H2.19c-.24 0-.47.042-.683.12L1.5 2.98a1 1 0 0 1 1-1h2.672a1 1 0 0 1 .707.293z"/><path d="M13.5 10a.5.5 0 0 1 .5.5V12h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V13h-1.5a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/></svg>
+                        </button>
                         <span class="collapse-icon"></span>
                     </div>
                 </div>
@@ -540,10 +543,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="section-header collapsible-header">
                     <h4>Dokumente & Verknüpfungen</h4>
                     <div class="header-actions">
-                        <button class="btn-icon btn-import-file" data-id="${caseItem.id}" title="Datei importieren">
+                        <button id="btn-import-file" class="btn-icon" title="Datei importieren">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
                         </button>
-                        <button class="btn-icon btn-new-folder" title="Neuer Ordner">
+                        <button id="btn-new-doc-folder" class="btn-icon" title="Neuer Ordner für Dokumente">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder-plus" viewBox="0 0 16 16"><path d="m.5 3 .04.87a1.99 1.99 0 0 0-.342 1.311l.637 7A2 2 0 0 0 2.826 14H9v-1H2.826a1 1 0 0 1-.995-.91l-.637-7A1 1 0 0 1 2.19 4h11.62a1 1 0 0 1 .996 1.09L14.54 8h1.005l.256-2.819A2 2 0 0 0 13.81 3H9.828a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 6.172 1H2.5a2 2 0 0 0-2 2zm5.672-1a1 1 0 0 1 .707.293L7.586 3H2.19c-.24 0-.47.042-.683.12L1.5 2.98a1 1 0 0 1 1-1h2.672a1 1 0 0 1 .707.293z"/><path d="M13.5 10a.5.5 0 0 1 .5.5V12h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V13h-1.5a.5.5 0 0 1 0-1H13v-1.5a.5.5 0 0 1 .5-.5z"/></svg>
                         </button>
                         <span class="collapse-icon"></span>
@@ -556,8 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         renderMasterData(caseItem);
-        renderDocuments(caseItem, document.getElementById('document-list-container'), caseItem.documents);
-        renderEntries(caseItem);
+        renderHierarchy(document.getElementById('document-list-container'), caseItem.documents, 'document');
+        renderHierarchy(document.getElementById('entries-list-container'), caseItem.entries, 'entry');
 
         // Add collapsible functionality
         caseDetailView.querySelectorAll('.collapsible-header').forEach(header => {
@@ -571,6 +574,66 @@ document.addEventListener('DOMContentLoaded', () => {
         // Use AbortController to manage the event listener
         caseDetailViewController.abort();
         caseDetailViewController = new AbortController();
+
+        let draggedItem = null;
+
+        caseDetailView.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.document-item');
+            if (item && item.draggable) {
+                draggedItem = {
+                    id: item.dataset.id,
+                    type: item.dataset.itemType
+                };
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+
+        caseDetailView.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const folder = e.target.closest('.folder-item');
+            if (folder) {
+                folder.classList.add('drag-over');
+            }
+        });
+
+        caseDetailView.addEventListener('dragleave', (e) => {
+            const folder = e.target.closest('.folder-item');
+            if (folder) {
+                folder.classList.remove('drag-over');
+            }
+        });
+
+        caseDetailView.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const folder = e.target.closest('.folder-item');
+
+            if (folder && draggedItem) {
+                folder.classList.remove('drag-over');
+                const targetFolderId = folder.dataset.id;
+                const targetFolderType = folder.dataset.itemType;
+
+                // Prevent dropping items into a folder of a different type
+                if (draggedItem.type !== targetFolderType) {
+                    draggedItem = null;
+                    return;
+                }
+
+                const sourceArray = draggedItem.type === 'document' ? caseItem.documents : caseItem.entries;
+
+                const itemToMove = findAndRemove(sourceArray, draggedItem.id);
+                if (itemToMove) {
+                    const targetFolder = findItem(sourceArray, targetFolderId);
+                    if (targetFolder && targetFolder.type === 'folder') {
+                        targetFolder.children.push(itemToMove);
+                        saveCases();
+                        showCaseDetail(caseItem.id);
+                        showNotification('Element verschoben', 'success');
+                    }
+                }
+            }
+            draggedItem = null;
+        });
+
         caseDetailView.addEventListener('click', async (e) => {
             const button = e.target.closest('button');
             if (!button) return;
@@ -604,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showNotification('Funktion noch nicht implementiert.', 'error');
             }
             // Case-level document buttons
-            else if (button.classList.contains('btn-import-file')) {
+            else if (button.id === 'btn-import-file') {
                 const result = await window.electronAPI.importFile(caseItem.id);
                 if (result && !result.error) {
                     result.id = 'file_' + Date.now();
@@ -615,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showNotification('Datei erfolgreich importiert', 'success');
                 }
             }
-            else if (button.classList.contains('btn-new-folder')) {
+            else if (button.id === 'btn-new-doc-folder') {
                 const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
                 if (folderName) {
                     caseItem.documents.push({ id: 'folder_' + Date.now(), type: 'folder', name: folderName, children: [] });
@@ -624,33 +687,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     showNotification('Ordner erfolgreich erstellt', 'success');
                 }
             }
-            // Entry-level document buttons
-            else if (button.classList.contains('btn-import-file-entry')) {
-                const entryId = button.dataset.entryId;
-                const entry = caseItem.entries.find(en => en.id == entryId);
-                if(entry) {
-                    const result = await window.electronAPI.importFile(caseItem.id);
-                    if (result && !result.error) {
-                        result.id = 'file_' + Date.now();
-                        result.type = 'file';
-                        entry.documents.push(result);
-                        saveCases();
-                        showCaseDetail(caseItem.id);
-                        showNotification('Datei zum Eintrag hinzugefügt', 'success');
-                    }
-                }
-            }
-             else if (button.classList.contains('btn-new-folder-entry')) {
-                const entryId = button.dataset.entryId;
-                const entry = caseItem.entries.find(en => en.id == entryId);
-                 if (entry) {
-                    const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
-                    if (folderName) {
-                        entry.documents.push({ id: 'folder_' + Date.now(), type: 'folder', name: folderName, children: [] });
-                        saveCases();
-                        showCaseDetail(caseItem.id);
-                        showNotification('Ordner erfolgreich erstellt', 'success');
-                    }
+             else if (button.id === 'btn-new-entry-folder') {
+                 const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
+                if (folderName) {
+                    // This is simplified. In a real app, you'd need to know which entry to add to.
+                    // For now, let's assume we add to the case's entries array as a special entry type.
+                    // This part of the logic needs to be revisited in the next step.
+                    caseItem.entries.push({ id: 'folder_' + Date.now(), type: 'folder', name: folderName, children: [] });
+                    saveCases();
+                    showCaseDetail(caseItem.id);
+                    showNotification('Ordner für Einträge erfolgreich erstellt', 'success');
                 }
             }
             // Entry actions
@@ -727,6 +773,77 @@ document.addEventListener('DOMContentLoaded', () => {
         container.querySelectorAll('.btn-move-doc').forEach(button => {
             button.addEventListener('click', (e) => openMoveDocModal(caseItem, e.target.dataset.id));
         });
+    }
+
+    function renderHierarchy(container, items, itemType) {
+        container.innerHTML = ''; // Clear container before rendering
+
+        // Sort if it's entries, otherwise keep original order
+        const sortedItems = itemType === 'entry' ? [...items].sort((a, b) => new Date(b.date) - new Date(a.date)) : items;
+
+        const folders = sortedItems.filter(item => item.type === 'folder');
+        const files = sortedItems.filter(item => item.type !== 'folder'); // Files or entries
+
+        folders.forEach(folder => {
+            const folderEl = document.createElement('div');
+            folderEl.className = 'document-item folder-item';
+            folderEl.dataset.id = folder.id;
+            folderEl.dataset.itemType = itemType; // Mark folder type
+            folderEl.innerHTML = `
+                <div class="document-item-name collapsible-folder-header">
+                    <span class="collapse-icon"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-1.178 6.6A2 2 0 0 1 12.733 13H3.266a2 2 0 0 1-1.991-1.819l-1.178-6.6a2 2 0 0 1 .54-1.71zM2 4a1 1 0 0 0-1 1v6.819c0 .52.33.974.832 1.094l1.178 6.6A1 1 0 0 0 3.266 12h9.468a1 1 0 0 0 .992-.886l1.178-6.6A1 1 0 0 0 14 5H2z"/></svg>
+                    <span>${folder.name}</span>
+                </div>
+                <div class="document-item-actions">
+                    <button class="btn-icon btn-delete" data-id="${folder.id}" title="Ordner löschen">...</button>
+                </div>
+                <div class="folder-children collapsed"></div>`;
+
+            const childrenContainer = folderEl.querySelector('.folder-children');
+            renderHierarchy(childrenContainer, folder.children, itemType); // Recursive call
+            container.appendChild(folderEl);
+        });
+
+        files.forEach(item => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'document-item';
+            itemEl.dataset.id = item.id;
+            itemEl.dataset.itemType = itemType; // Mark item type
+            itemEl.draggable = true;
+
+            if (itemType === 'entry') {
+                 itemEl.innerHTML = `
+                    <div class="document-item-name">
+                        <span>${item.date} - ${item.name}</span>
+                    </div>
+                    <div class="document-item-actions">
+                         <button class="btn-icon btn-edit-entry" data-id="${item.id}" title="Eintrag bearbeiten">...</button>
+                         <button class="btn-icon btn-delete" data-id="${item.id}" title="Eintrag löschen">...</button>
+                    </div>`;
+            } else { // 'document'
+                 itemEl.innerHTML = `
+                    <div class="document-item-name">
+                        <span>${item.name}</span>
+                    </div>
+                    <div class="document-item-actions">
+                        <button class="btn-move-doc" data-id="${item.id}">Verschieben</button>
+                        <button class="btn-icon btn-delete" data-id="${item.id}">Löschen</button>
+                    </div>`;
+            }
+            container.appendChild(itemEl);
+        });
+    }
+
+    function findItem(items, itemId) {
+        for (const item of items) {
+            if (item.id == itemId) return item;
+            if (item.type === 'folder') {
+                const found = findItem(item.children, itemId);
+                if (found) return found;
+            }
+        }
+        return null;
     }
 
     // Recursive function to find and remove an item from the tree

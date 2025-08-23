@@ -314,6 +314,11 @@ td .btn-edit, td .btn-delete {
     color: #3498db;
 }
 
+.folder-item.drag-over {
+    background-color: #eaf5ff;
+    border: 1px dashed #3498db;
+}
+
 .collapsible-section .section-content {
     max-height: 1000px; /* Set a large max-height for transition */
     overflow: hidden;
