@@ -305,6 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <p>Klient: ${clientName}</p>
             `;
+            caseCard.addEventListener('click', () => {
+                showCaseDetail(caseItem.id);
+            });
             // Edit button
             caseCard.querySelector('.btn-edit').addEventListener('click', (e) => {
                 e.stopPropagation();
