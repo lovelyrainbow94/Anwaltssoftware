@@ -262,7 +262,8 @@ td .btn-edit, td .btn-delete {
     margin-bottom: 20px;
 }
 
-.summary-section textarea {
+.summary-section textarea,
+.dispute-state-section textarea {
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;

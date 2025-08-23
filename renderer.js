@@ -424,9 +424,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // Create new case
             caseData.id = Date.now(); // Simple unique ID
-            caseData.summary = ''; // New summary field
-            caseData.documents = []; // Initialize documents
-            caseData.entries = []; // Initialize new entries array
+            caseData.summary = '';
+            caseData.disputeState = '';
+            caseData.documents = [];
+            caseData.entries = [];
+            caseData.masterData = {
+                legalInsurance: {},
+                opponents: []
+            };
             cases.push(caseData);
             showNotification('Akte erfolgreich erstellt', 'success');
         }
@@ -454,7 +459,26 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="back-to-cases">&larr; Zurück zur Aktenübersicht</span>
             <div class="case-detail-header">
                 <h3>${caseItem.title}</h3>
-                <p><strong>Klient:</strong> ${clientName}</p>
+            </div>
+
+            <div class="collapsible-section master-data-section collapsed">
+                <div class="section-header collapsible-header">
+                    <h4>Stammdaten</h4>
+                    <span class="collapse-icon"></span>
+                </div>
+                <div class="section-content">
+                    <h5>Klient</h5>
+                    <div id="master-data-client"></div>
+                    <hr>
+                    <h5>Rechtsschutzversicherung</h5>
+                    <div id="master-data-insurance"></div>
+                    <hr>
+                    <h5>Gegnerische Seite</h5>
+                    <div id="master-data-opponents"></div>
+                    <button id="add-opponent-btn" class="btn-primary">Gegner hinzufügen</button>
+                    <hr>
+                    <button id="save-master-data-btn" class="btn-primary">Stammdaten speichern</button>
+                </div>
             </div>
 
             <div class="collapsible-section summary-section collapsed">
@@ -513,68 +537,108 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        renderDocuments(caseItem);
+        renderMasterData(caseItem);
+        renderDocuments(caseItem, document.getElementById('document-list-container'), caseItem.documents);
         renderEntries(caseItem);
-
-        // Add event listeners for the new buttons
-        caseDetailView.querySelector('.back-to-cases').addEventListener('click', () => {
-            switchView('cases');
-        });
-
-        caseDetailView.querySelector('#add-entry-btn').addEventListener('click', () => {
-            openEntryModal(caseItem.id);
-        });
-
-        caseDetailView.querySelector('#save-summary-btn').addEventListener('click', () => {
-            const summaryText = caseDetailView.querySelector('#case-summary-textarea').value;
-            caseItem.summary = summaryText;
-            saveCases();
-            showNotification('Zusammenfassung gespeichert', 'success');
-        });
-
-        caseDetailView.querySelector('#save-dispute-state-btn').addEventListener('click', () => {
-            const disputeStateText = caseDetailView.querySelector('#case-dispute-state-textarea').value;
-            caseItem.disputeState = disputeStateText;
-            saveCases();
-            showNotification('Sach- und Streitstand gespeichert', 'success');
-        });
-
-        caseDetailView.querySelector('.btn-import-file').addEventListener('click', async () => {
-            const result = await window.electronAPI.importFile(caseItem.id);
-            if (result && !result.error) {
-                result.id = 'file_' + Date.now();
-                result.type = 'file';
-                caseItem.documents.push(result);
-                saveCases();
-                showCaseDetail(caseItem.id); // Re-render the detail view
-                showNotification('Datei erfolgreich importiert', 'success');
-            } else if (result && result.error) {
-                showNotification(`Fehler: ${result.error}`, 'error');
-            }
-        });
-
-        caseDetailView.querySelector('.btn-new-folder').addEventListener('click', () => {
-            const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
-            if (folderName) {
-                const newFolder = {
-                    id: 'folder_' + Date.now(),
-                    type: 'folder',
-                    name: folderName,
-                    children: []
-                };
-                caseItem.documents.push(newFolder);
-                saveCases();
-                showCaseDetail(caseItem.id);
-                showNotification('Ordner erfolgreich erstellt', 'success');
-            }
-        });
 
         // Add collapsible functionality
         caseDetailView.querySelectorAll('.collapsible-header').forEach(header => {
-            header.addEventListener('click', () => {
+            header.addEventListener('click', (e) => {
+                 if(e.target.closest('.btn-icon')) return; // Don't collapse when clicking a button in the header
                 const section = header.closest('.collapsible-section');
                 section.classList.toggle('collapsed');
             });
+        });
+
+        // Clear previous listeners and use event delegation for the whole view
+        const newCaseDetailView = caseDetailView.cloneNode(true);
+        caseDetailView.parentNode.replaceChild(newCaseDetailView, caseDetailView);
+        caseDetailView = newCaseDetailView; // Update reference
+
+        caseDetailView.addEventListener('click', async (e) => {
+            const button = e.target.closest('button');
+            if (!button) return;
+
+            // Back button
+            if (button.classList.contains('back-to-cases')) {
+                switchView('cases');
+            }
+            // Save buttons
+            else if (button.id === 'save-summary-btn') {
+                caseItem.summary = document.getElementById('case-summary-textarea').value;
+                saveCases();
+                showNotification('Zusammenfassung gespeichert', 'success');
+            }
+            else if (button.id === 'save-dispute-state-btn') {
+                caseItem.disputeState = document.getElementById('case-dispute-state-textarea').value;
+                saveCases();
+                showNotification('Sach- und Streitstand gespeichert', 'success');
+            }
+            // Case-level document buttons
+            else if (button.classList.contains('btn-import-file')) {
+                const result = await window.electronAPI.importFile(caseItem.id);
+                if (result && !result.error) {
+                    result.id = 'file_' + Date.now();
+                    result.type = 'file';
+                    caseItem.documents.push(result);
+                    saveCases();
+                    showCaseDetail(caseItem.id);
+                    showNotification('Datei erfolgreich importiert', 'success');
+                }
+            }
+            else if (button.classList.contains('btn-new-folder')) {
+                const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
+                if (folderName) {
+                    caseItem.documents.push({ id: 'folder_' + Date.now(), type: 'folder', name: folderName, children: [] });
+                    saveCases();
+                    showCaseDetail(caseItem.id);
+                    showNotification('Ordner erfolgreich erstellt', 'success');
+                }
+            }
+            // Entry-level document buttons
+            else if (button.classList.contains('btn-import-file-entry')) {
+                const entryId = button.dataset.entryId;
+                const entry = caseItem.entries.find(en => en.id == entryId);
+                if(entry) {
+                    const result = await window.electronAPI.importFile(caseItem.id);
+                    if (result && !result.error) {
+                        result.id = 'file_' + Date.now();
+                        result.type = 'file';
+                        entry.documents.push(result);
+                        saveCases();
+                        showCaseDetail(caseItem.id);
+                        showNotification('Datei zum Eintrag hinzugefügt', 'success');
+                    }
+                }
+            }
+             else if (button.classList.contains('btn-new-folder-entry')) {
+                const entryId = button.dataset.entryId;
+                const entry = caseItem.entries.find(en => en.id == entryId);
+                 if (entry) {
+                    const folderName = prompt('Bitte geben Sie einen Namen für den neuen Ordner ein:');
+                    if (folderName) {
+                        entry.documents.push({ id: 'folder_' + Date.now(), type: 'folder', name: folderName, children: [] });
+                        saveCases();
+                        showCaseDetail(caseItem.id);
+                        showNotification('Ordner erfolgreich erstellt', 'success');
+                    }
+                }
+            }
+            // Entry actions
+            else if (button.id === 'add-entry-btn') {
+                openEntryModal(caseItem.id);
+            }
+            else if (button.classList.contains('btn-edit-entry')) {
+                openEntryModal(caseItem.id, button.dataset.id);
+            }
+            else if (button.classList.contains('btn-delete-entry')) {
+                if (confirm(`Sind Sie sicher, dass Sie den Eintrag löschen möchten?`)) {
+                    caseItem.entries = caseItem.entries.filter(en => en.id != button.dataset.id);
+                    saveCases();
+                    showCaseDetail(caseItem.id);
+                    showNotification('Eintrag gelöscht', 'success');
+                }
+            }
         });
 
         switchView('cases', true); // Switch to detail view mode
@@ -733,6 +797,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         moveDocModal.style.display = 'none';
     });
+
+    function renderMasterData(caseItem) {
+        const clientContainer = document.getElementById('master-data-client');
+        const insuranceContainer = document.getElementById('master-data-insurance');
+        const opponentsContainer = document.getElementById('master-data-opponents');
+
+        // 1. Render Client Data
+        const client = clients.find(c => c.id === caseItem.clientId);
+        if (client) {
+            clientContainer.innerHTML = `<p><strong>Name:</strong> ${client.name}<br><strong>E-Mail:</strong> ${client.email}<br><strong>Telefon:</strong> ${client.phone}<br><strong>Adresse:</strong> ${client.address}</p>`;
+        } else {
+            clientContainer.innerHTML = `<p>Kein Klient mit dieser Akte verknüpft.</p>`;
+        }
+
+        // 2. Render Insurance Data
+        const insurance = caseItem.masterData.legalInsurance || {};
+        insuranceContainer.innerHTML = `
+            <div class="form-group">
+                <label>Name der Versicherung</label>
+                <input type="text" id="insurance-name" value="${insurance.name || ''}">
+            </div>
+            <div class="form-group">
+                <label>Vertragsnummer</label>
+                <input type="text" id="insurance-contract" value="${insurance.contractNumber || ''}">
+            </div>
+            <div class="form-group">
+                <label>Schadennummer</label>
+                <input type="text" id="insurance-claim" value="${insurance.claimNumber || ''}">
+            </div>
+        `;
+
+        // 3. Render Opponents
+        const opponents = caseItem.masterData.opponents || [];
+        opponentsContainer.innerHTML = '';
+        if (opponents.length > 0) {
+            opponents.forEach(opponent => {
+                const opponentEl = document.createElement('div');
+                opponentEl.className = 'card';
+                opponentEl.innerHTML = `<h4>${opponent.name}</h4>`;
+                opponentsContainer.appendChild(opponentEl);
+            });
+        } else {
+            opponentsContainer.innerHTML = '<p>Keine Gegner erfasst.</p>';
+        }
+    }
+
+    document.getElementById('save-master-data-btn').addEventListener('click', () => {
+        const caseItem = cases.find(c => c.id === currentCaseIdForEntry);
+        if (!caseItem) return;
+
+        caseItem.masterData.legalInsurance = {
+            name: document.getElementById('insurance-name').value,
+            contractNumber: document.getElementById('insurance-contract').value,
+            claimNumber: document.getElementById('insurance-claim').value
+        };
+
+        saveCases();
+        showNotification('Stammdaten gespeichert', 'success');
+    });
+
 
     function renderCases() {
         caseList.innerHTML = '';
@@ -1115,6 +1239,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const entryModalTitle = document.getElementById('entry-modal-title');
     const entryIdInput = document.getElementById('entry-id');
     let currentCaseIdForEntry = null;
+    let tempEntryDocs = [];
+
+    function renderTempDocsInModal() {
+        const container = document.getElementById('entry-modal-doc-list');
+        container.innerHTML = '';
+        tempEntryDocs.forEach((doc, index) => {
+            const docEl = document.createElement('div');
+            docEl.className = 'document-item';
+            docEl.innerHTML = `<span>${doc.name}</span> <button type="button" class="btn-delete-temp-doc" data-index="${index}">&times;</button>`;
+            docEl.querySelector('.btn-delete-temp-doc').addEventListener('click', () => {
+                tempEntryDocs.splice(index, 1);
+                renderTempDocsInModal();
+            });
+            container.appendChild(docEl);
+        });
+    }
 
     function renderEntries(caseItem) {
         const container = document.getElementById('entries-list-container');
@@ -1226,12 +1366,17 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('entry-date').value = entry.date;
             document.getElementById('entry-name').value = entry.name;
             document.getElementById('entry-content').value = entry.content;
+            // Deep clone documents for temporary editing
+            tempEntryDocs = JSON.parse(JSON.stringify(entry.documents || []));
         } else {
             // Create mode
             entryModalTitle.textContent = 'Neuer Eintrag';
             entryIdInput.value = '';
             document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+            tempEntryDocs = [];
         }
+
+        renderTempDocsInModal();
         entryModal.style.display = 'block';
     }
 
@@ -1243,6 +1388,19 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (event) => {
         if (event.target == entryModal) {
             closeEntryModal();
+        }
+    });
+
+    document.getElementById('add-doc-to-entry-btn').addEventListener('click', async () => {
+        const caseItem = cases.find(c => c.id === currentCaseIdForEntry);
+        if (!caseItem) return;
+        const result = await window.electronAPI.importFile(caseItem.id);
+        if (result && !result.error) {
+            result.id = 'file_' + Date.now();
+            result.type = 'file';
+            tempEntryDocs.push(result);
+            renderTempDocsInModal();
+            showNotification('Dokument zur Liste hinzugefügt', 'success');
         }
     });
 
@@ -1262,17 +1420,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update existing entry
             const entryIndex = caseItem.entries.findIndex(e => e.id == entryId);
             if (entryIndex > -1) {
-                // Preserve ID and documents array
                 caseItem.entries[entryIndex] = {
                     ...caseItem.entries[entryIndex],
-                    ...entryData
+                    ...entryData,
+                    documents: tempEntryDocs // Assign the updated documents
                 };
                 showNotification('Eintrag erfolgreich aktualisiert', 'success');
             }
         } else {
             // Create new entry
             entryData.id = Date.now();
-            entryData.documents = [];
+            entryData.documents = tempEntryDocs; // Assign the new documents
             caseItem.entries.push(entryData);
             showNotification('Eintrag erfolgreich erstellt', 'success');
         }
