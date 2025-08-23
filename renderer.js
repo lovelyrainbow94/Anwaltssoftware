@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const navItems = document.querySelectorAll('.sidebar ul li');
     const views = document.querySelectorAll('.main-content > .view'); // Select only direct children
     const actionButtons = document.querySelectorAll('.action-btn');
-    const caseDetailView = document.getElementById('case-detail-view');
+    let caseDetailView = document.getElementById('case-detail-view'); // Changed to let
+    let caseListController = new AbortController();
+    let caseDetailViewController = new AbortController();
 
     let currentView = 'dashboard';
 
@@ -311,6 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Abort previous listener and set up new one
+    caseListController.abort();
+    caseListController = new AbortController();
     caseList.addEventListener('click', (e) => {
         const target = e.target;
         const caseCard = target.closest('.card');
@@ -332,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             showCaseDetail(caseId);
         }
-    });
+    }, { signal: caseListController.signal });
 
     function setupClientSearch(selectedClientId = null) {
         const searchInput = document.getElementById('case-client-search');
@@ -563,11 +568,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Clear previous listeners and use event delegation for the whole view
-        const newCaseDetailView = caseDetailView.cloneNode(true);
-        caseDetailView.parentNode.replaceChild(newCaseDetailView, caseDetailView);
-        caseDetailView = newCaseDetailView; // Update reference
-
+        // Use AbortController to manage the event listener
+        caseDetailViewController.abort();
+        caseDetailViewController = new AbortController();
         caseDetailView.addEventListener('click', async (e) => {
             const button = e.target.closest('button');
             if (!button) return;
@@ -652,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showNotification('Eintrag gelöscht', 'success');
                 }
             }
-        });
+        }, { signal: caseDetailViewController.signal });
 
         switchView('cases', true); // Switch to detail view mode
     }
